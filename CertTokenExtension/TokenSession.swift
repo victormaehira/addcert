@@ -3,23 +3,34 @@ import CryptoTokenKit
 class TokenSession: TKTokenSession, TKTokenSessionDelegate {
     override init(token: TKToken) {
         super.init(token: token)
+        NSLog(">init do TokenSession")
+        print(">init do TokenSession")
         delegate = self
     }
 
     func tokenSession(
-        _ session: TKTokenSession,
-        supports operation: TKTokenOperation,
-        keyObjectID: Any,
-        algorithm: TKTokenKeyAlgorithm
+    _ session: TKTokenSession,
+    supports operation: TKTokenOperation,
+    keyObjectID: Any,
+    algorithm: TKTokenKeyAlgorithm
     ) -> Bool {
         switch operation {
         case .signData:
-            return algorithm.isAlgorithm(.rsaSignatureMessagePKCS1v15SHA256)
-                || algorithm.isAlgorithm(.rsaSignatureMessagePKCS1v15SHA384)
-                || algorithm.isAlgorithm(.rsaSignatureMessagePKCS1v15SHA512)
+            // supportsAlgorithm matches at ANY level of the algorithm chain,
+            // so .rsaSignatureRaw catches all RSA signing variants
+            // (Message/Digest × PKCS1v15/PSS × SHA1/256/384/512).
+            let ok = algorithm.supportsAlgorithm(.rsaSignatureRaw)
+            NSLog("CertTokenExtension: supports signData key=%@ -> %@",
+                String(describing: keyObjectID), ok ? "YES" : "NO")
+            return ok
         case .decryptData:
-            return algorithm.isAlgorithm(.rsaEncryptionPKCS1)
+            let ok = algorithm.supportsAlgorithm(.rsaEncryptionRaw)
+            NSLog("CertTokenExtension: supports decryptData key=%@ -> %@",
+                String(describing: keyObjectID), ok ? "YES" : "NO")
+            return ok
         default:
+            NSLog("CertTokenExtension: supports op=%d -> NO (unhandled)",
+                operation.rawValue)
             return false
         }
     }
