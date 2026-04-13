@@ -83,7 +83,7 @@ enum TokenRegistration {
 
         ensureExtensionRegistered()
 
-        try registerTokenConfiguration(certificate: certificate)
+        try registerTokenConfiguration(certificate: certificate, displayLabel: subjectSummary)
 
         NSLog("Certificado registrado com sucesso via CryptoTokenKit")
     }
@@ -145,7 +145,7 @@ enum TokenRegistration {
         }
     }
 
-    private static func registerTokenConfiguration(certificate: SecCertificate) throws {
+    private static func registerTokenConfiguration(certificate: SecCertificate, displayLabel: String) throws {
         var configs = TKTokenDriver.Configuration.driverConfigurations
 
         for attempt in 1...5 where configs[extensionBundleID] == nil {
@@ -166,14 +166,16 @@ enum TokenRegistration {
         guard let certItem = TKTokenKeychainCertificate(certificate: certificate, objectID: certObjectID) else {
             throw RegistrationError.invalidDERCertificate
         }
-        tokenConfig.keychainItems.append(certItem)
+        certItem.label = displayLabel
 
         guard let keyItem = TKTokenKeychainKey(certificate: certificate, objectID: keyObjectID) else {
             throw RegistrationError.invalidDERCertificate
         }
+        keyItem.label = displayLabel + " (chave)"
         keyItem.canSign = true
         keyItem.canDecrypt = true
         keyItem.isSuitableForLogin = true
-        tokenConfig.keychainItems.append(keyItem)
+
+        tokenConfig.keychainItems = [certItem, keyItem]
     }
 }
